@@ -1,24 +1,26 @@
-# 按 `Arrange-Act-Assert` 组织测试结构，优先用**表驱动** + `t.Run` 罗列多组用例覆盖正常路径与关键边界（如：空输入、特殊字符、nil/空切片、不同类型/组合输入等）；断言要同时包含 **got / want**（必要时带格式化提示），确保失败时可快速定位问题
+## 基础测试
+> 适用于纯函数测试（无外部依赖、无需 mock）。
+> 按 Arrange-Act-Assert 结构组织，优先用表驱动 + `t.Run` 覆盖正常路径与关键边界（如：空输入、特殊字符、nil/空切片、不同类型/组合输入等）；断言要同时包含 **got / want**（必要时带格式化提示），确保失败时可快速定位问题。
 
-## 正确例子
+### 示例：单一场景 AAA 结构
 ```go
 func TestUnit_Add(t *testing.T) {
     // Arrange
     a, b := 2, 3
     expected := 5
-    
+
     // Act
     result := Add(a, b)
-	
+
 	// Assert
-	assert.Equalf(t, expected, result,"Add(%d, %d) = %d, 期望 %d", a, b, result, expected)
+	assert.Equalf(t, expected, result, "Add(%d, %d) = %d, 期望 %d", a, b, result, expected)
 }
 ```
 
-### 正确例子
+### 示例：表驱动测试
 ```go
 
-func TestUnitCleanString(t *testing.T) {
+func TestUnit_CleanString(t *testing.T) {
 	type args struct {
 		input string
 	}
@@ -28,28 +30,28 @@ func TestUnitCleanString(t *testing.T) {
 		want string
 	}{
 		{
-			name: "test",
+			name: "ampersand_and_space",
 			args: args{
 				input: "A&B C",
 			},
 			want: "A、BC",
 		},
 		{
-			name: "test",
+			name: "mixed_chinese_english",
 			args: args{
 				input: "Hello! 你好&世界",
 			},
 			want: "Hello你好、世界",
 		},
 		{
-			name: "test",
+			name: "special_chars_only",
 			args: args{
 				input: "123_@#&",
 			},
 			want: "123、",
 		},
 		{
-			name: "test",
+			name: "keep_slash_hyphen",
 			args: args{
 				input: "123_@#&/-",
 			},
@@ -67,7 +69,7 @@ func TestUnitCleanString(t *testing.T) {
 
 ```
 
-### 泛型UT代码 - 正确例子
+### 示例：泛型函数测试
 ```go
 
 func TestUnit_Sum(t *testing.T) {

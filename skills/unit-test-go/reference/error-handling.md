@@ -1,4 +1,4 @@
-## 错误处理规范
+## 错误处理与断言规范
 
 ### 【必须】错误必须被处理
 
@@ -104,7 +104,7 @@ func TestUnit_Divide(t *testing.T) {
 }
 ```
 
-## 断言最佳实践
+### 断言最佳实践
 
 ### 【推荐】基础断言模式
 
@@ -127,7 +127,8 @@ func TestUnit_GenerateID(t *testing.T) {
 
 // 断言为 nil
 func TestUnit_FindUser(t *testing.T) {
-    user, _ := FindUser(999)
+    user, err := FindUser(999)
+    assert.Error(t, err, "期望用户不存在时返回错误")
 	assert.Nil(t, user, "期望返回 nil，但得到: %v", user)
 }
 
@@ -138,7 +139,7 @@ func TestUnit_CreateUser(t *testing.T) {
 }
 ```
 
-### 【可选】使用 testify/assert 库
+### 【必须】使用 testify/assert 库
 对于复杂项目，可以使用 `github.com/stretchr/testify/assert` 库简化断言。
 
 ```go
@@ -210,7 +211,7 @@ func TestUnit_CreateOrder(t *testing.T) {
 }
 ```
 
-## 错误信息格式
+### 错误信息格式
 
 ### 【推荐】提供清晰的错误信息
 
@@ -254,7 +255,7 @@ t.Errorf("期望类型 %T，但得到 %T", expected, actual)
 t.Errorf("期望 %#v，但得到 %#v", expected, actual)
 ```
 
-## 表驱动测试中的错误处理
+### 表驱动测试中的错误处理
 
 ### 【推荐】在表驱动测试中处理错误
 
@@ -304,7 +305,7 @@ func TestUnit_Validate(t *testing.T) {
 }
 ```
 
-## 常见错误处理场景
+### 常见错误处理场景
 
 ### 场景 1：文件操作错误
 
@@ -376,7 +377,7 @@ func TestUnit_SaveUser(t *testing.T) {
     
     t.Run("唯一约束冲突", func(t *testing.T) {
         user := &User{Name: "张三", Age: 25}
-        _ = db.SaveUser(user)
+        require.NoError(t, db.SaveUser(user), "前置保存失败")
         
         // 尝试保存重复用户
         err := db.SaveUser(user)

@@ -1,5 +1,8 @@
+## 表驱动测试
+> 适用于需要覆盖多组输入/输出场景的函数或方法。
+> 使用 `tests := []struct{...}{...}` + `t.Run` 组织用例；每个 case 的 name 必须唯一且语义化。
 
-## 正确例子
+### 示例：结构体类型的方法测试
 ```go
 
 type Cities map[string]string
@@ -35,7 +38,7 @@ func TestUnitCities_GetCityName(t *testing.T) {
 }
 ```
 
-## 正确例子
+### 示例：返回值为 map 的方法测试
 ```go
 func TestUnit_competitorRepo_priorityRoster(t *testing.T) {
 	tests := []struct {
@@ -66,7 +69,7 @@ func TestUnit_competitorRepo_priorityRoster(t *testing.T) {
 }
 ```
 
-## 正确例子
+### 示例：多字段 want + wantExist 复合断言
 ```go
 
 func TestUnit_tennisStats_aggregatePlayerStats(t *testing.T) {
@@ -151,7 +154,10 @@ func TestUnit_tennisStats_aggregatePlayerStats(t *testing.T) {
 
 ```
 
-## 错误例子
+### 错误例子
+> ❌ 错误原因：用手动嵌套迭代替代 `assert.Equal`，代码冗长且易漏字段。
+> 当 `wantExist` 有但 `want` 没有的 key 时不会报错，存在漏测风险。
+> 应使用 `assert.Equal(t, tt.want, got)` 一次性整体比较。
 ```go
 
 func TestUnit_tennisStats_aggregatePlayerStats(t *testing.T) {

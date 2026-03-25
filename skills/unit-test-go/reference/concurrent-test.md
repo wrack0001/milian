@@ -1,5 +1,5 @@
 ## 并发测试模板示例
-> 演示如何测试并发代码，包括 goroutine、channel、sync 包的使用
+> 演示如何测试并发安全性，包括 goroutine、sync 包（atomic）的使用。
 
 ### 正确例子
 ```go

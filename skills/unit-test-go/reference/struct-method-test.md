@@ -1,16 +1,16 @@
-## 结构体方法测试模板示例
+## 结构体方法测试
 > 演示如何测试结构体的方法，包括 mock、stub 和接口测试
 
-## mock 框架和规则
-### 判断是否有对象或者函数或方法需要mock，并使用gomonkey进行mock
-- **识别需要mock的依赖**:
-  以下几种情况需要mock，其余情况均不需要mock:
-    1. 外部依赖，如：数据库查询和更新、HTTP请求、文件读写操作。
+### mock 框架和规则
+
+#### mock 依赖识别规则
+- **识别需要 mock 的依赖**：以下几种情况需要 mock，其余情况均不需要 mock：
+    1. 外部依赖，如：数据库查询和更新、HTTP 请求、文件读写操作
     2. 第三方库
-    3. 不可预测的行为，如生成随机数的函数，获取当前时间的函数等
-- 使用gomonkey.ApplyFunc、gomonkey.ApplyMethod、gomonkey.ApplyFuncSeq、gomonkey.ApplyGlobalVar等方法对这些依赖函数进行mock，并设置不同的返回值或行为来模拟不同的测试场景。
-- 当所需mock的函数/结构体在给出的上下文中不存在具体定义时，**不允许mock**。
-- mock之前首先检查提供的依赖中是否提供了对应interface的mock方法，一般对应的mock方法是NewMockSomeInterface，如果已经提供，那么使用gomock进行mock，不要新编写对应的mock方法。gomock的基础用法是：
+    3. 不可预测的行为，如生成随机数的函数、获取当前时间的函数等
+- 使用 gomonkey.ApplyFunc、gomonkey.ApplyMethod、gomonkey.ApplyFuncSeq、gomonkey.ApplyGlobalVar 等方法对这些依赖函数进行 mock，并设置不同的返回值或行为来模拟不同的测试场景。
+- 若被 mock 的函数/方法在当前提供的代码文件中没有具体实现，则不允许 mock。
+- 若项目 mock/ 目录中已存在对应 interface 的 mock 实现（通常命名为 NewMockXxx），则直接使用，不重新编写。gomock 的基础用法是：
 ```go
 mockCtrl := gomock.NewController(t)
 defer mockCtrl.Finish()
@@ -18,9 +18,26 @@ mockObj := mock.NewMockInterface(mockCtrl)
 mockObj.EXPECT().SomeMethod(gomock.Any()).Return(someValue)
 ```
 
-### 正确例子
+#### gomonkey reflect.TypeOf 参数规则
+- 指针接收者方法（`func (t *T) Foo()`）：使用 `reflect.TypeOf(&T{})`
+- 值接收者方法（`func (t T) Foo()`）：使用 `reflect.TypeOf(T{})`
+> 用错类型会导致 patch 无效，mock 不生效。
+
+#### gomock ctrl 作用域规范
+- **固定 mock**（所有 case 期望行为相同）：ctrl 在函数体最外层创建，`defer ctrl.Finish()` 在函数级执行
+- **per-case mock**（每个 case 期望行为不同）：在 `mockSetup` 函数中创建 ctrl，`defer ctrl.Finish()` 在 `t.Run` 内执行
+> 参见正确例子：TestUnit_Competition（固定 mock）vs TestUnit_tennisStats_convertTeamGamesToPlayerGames（per-case mock）
+
+#### gomonkey patch 生命周期
+- patch 应在**测试函数最外层**（循环外）初始化，`defer p.Reset()` 在函数级执行
+- **不要**在 `t.Run` 内部使用 gomonkey patch：defer 不会在子测试结束时执行，会导致 mock 状态泄漏到后续 case
+- 若每个 case 需要不同 mock 行为，应改用 gomock per-case 方式（见上）
+
+> 注意：示例中的 `trpc.BackgroundContext()` 为 trpc 框架特有 API；若项目未使用 trpc，替换为标准库 `context.Background()`。
+
+### 示例：gomonkey patch 函数 + 表驱动
 ```go
-func TestCustomIp_IsPrivateIP(t *testing.T) {
+func TestUnitCustomIp_IsPrivateIP(t *testing.T) {
 	type fields struct {
 		ip string
 	}
@@ -69,7 +86,7 @@ func TestCustomIp_IsPrivateIP(t *testing.T) {
 }
 ```
 
-### 正确例子
+### 示例：gomock 固定 mock + 表驱动
 ```go
 
 import (
@@ -144,7 +161,7 @@ func TestUnit_Competition(t *testing.T) {
 
 ```
 
-### 正确例子
+### 示例：gomonkey patch 方法 + 表驱动
 ```go
 
 import (
@@ -195,7 +212,7 @@ func TestUnit_IntelligenceResponse_ToPBPEntity(t *testing.T) {
 		want   []*dpbp.PBP
 	}{
 		{
-			name: "normal",
+			name: "single_result",
 			fields: fields{
 				Results: []*IntelligenceData{{ID: 1}},
 			},
@@ -206,7 +223,7 @@ func TestUnit_IntelligenceResponse_ToPBPEntity(t *testing.T) {
 			want: []*dpbp.PBP{{Base: dpbp.Base{Content: "test-content"}}},
 		},
 		{
-			name: "normal",
+			name: "multiple_results",
 			fields: fields{
 				Results: []*IntelligenceData{{ID: 2}},
 			},
@@ -220,7 +237,7 @@ func TestUnit_IntelligenceResponse_ToPBPEntity(t *testing.T) {
 			},
 		},
 		{
-			name: "normal",
+			name: "mixed_results",
 			fields: fields{
 				Results: []*IntelligenceData{{ID: 1}, {ID: 2}},
 			},
@@ -242,14 +259,14 @@ func TestUnit_IntelligenceResponse_ToPBPEntity(t *testing.T) {
 				Results: tt.fields.Results,
 			}
 			got := c.ToPBPEntity(tt.args.ctx, tt.args.match)
-			assert.Equal(t, got, tt.want)
+			assert.Equal(t, tt.want, got)
 		})
 	}
 }
 
 ```
 
-### 正确例子
+### 示例：gomonkey patch 私有方法
 ```go
 
 import (
@@ -266,6 +283,7 @@ import (
 )
 
 func TestUnit_matchLiveParser_fillMatchLiveScore(t *testing.T) {
+	// 注意：ApplyPrivateMethod 用于 patch 私有方法，需配合 -gcflags=all=-l
 	p := gomonkey.ApplyPrivateMethod(reflect.TypeOf(matchLiveParser{}), "getBestOf",
 		func(_ matchLiveParser, ctx context.Context, cateName string, id int64) (int64, error) {
 			return 7, nil
@@ -358,7 +376,7 @@ func TestUnit_matchLiveParser_fillMatchLiveScore(t *testing.T) {
 
 ```
 
-### 正确例子
+### 示例：gomock per-case mock + mockSetup 模式
 ```go
 
 func TestUnit_tennisStats_convertTeamGamesToPlayerGames(t *testing.T) {
@@ -371,7 +389,7 @@ func TestUnit_tennisStats_convertTeamGamesToPlayerGames(t *testing.T) {
 		want          map[string]int
 	}{
 		{
-			name:          "competitor_not_found",
+			name:          "partial_teams_missing_returns_only_found_players",
 			competitionID: "100001",
 			seasonID:      "2024",
 			teamGames: map[string]int{

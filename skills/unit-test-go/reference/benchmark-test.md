@@ -1,3 +1,7 @@
+## 基准测试
+> 适用于性能测试和优化，使用 `BenchmarkXxx` 函数（不受 TestUnit 命名规则约束）。
+> 注意：若项目使用 gomonkey，需在命令中额外添加 `-gcflags=all=-l`。
+
 ```go
 
 // 基准测试模板示例
@@ -203,84 +207,11 @@ func BenchmarkCPUIntensive(b *testing.B) {
 	}
 }
 
-// 被测试的函数示例
-
-func Sum(data []int) int {
-	sum := 0
-	for _, v := range data {
-		sum += v
-	}
-	return sum
-}
-
-func BubbleSort(data []int) {
-	n := len(data)
-	for i := 0; i < n-1; i++ {
-		for j := 0; j < n-i-1; j++ {
-			if data[j] > data[j+1] {
-				data[j], data[j+1] = data[j+1], data[j]
-			}
-		}
-	}
-}
-
-func QuickSort(data []int) {
-	if len(data) < 2 {
-		return
-	}
-
-	left, right := 0, len(data)-1
-	pivot := len(data) / 2
-
-	data[pivot], data[right] = data[right], data[pivot]
-
-	for i := range data {
-		if data[i] < data[right] {
-			data[i], data[left] = data[left], data[i]
-			left++
-		}
-	}
-
-	data[left], data[right] = data[right], data[left]
-
-	QuickSort(data[:left])
-	QuickSort(data[left+1:])
-}
-
-func Fibonacci(n int) int {
-	if n <= 1 {
-		return n
-	}
-	return Fibonacci(n-1) + Fibonacci(n-2)
-}
-
-// Cache 缓存实现
-type Cache struct {
-	data map[string]int
-}
-
-func NewCache() *Cache {
-	return &Cache{
-		data: make(map[string]int),
-	}
-}
-
-func (c *Cache) Set(key string, value int) {
-	c.data[key] = value
-}
-
-func (c *Cache) Get(key string) (int, bool) {
-	value, ok := c.data[key]
-	return value, ok
-}
-
-func (c *Cache) Clear() {
-	c.data = make(map[string]int)
-}
+// 以上基准测试假设 Sum/BubbleSort/QuickSort/Fibonacci/Cache 已在同包中定义
 
 ```
 
-## 基准测试运行命令：
+### 基准测试运行命令
 
 1. 运行所有基准测试：
    go test -ldflags "-X google.golang.org/protobuf/reflect/protoregistry.conflictPolicy=warn" -bench=.
@@ -309,7 +240,7 @@ func (c *Cache) Clear() {
 8. 生成内存 profile：
    go test -ldflags "-X google.golang.org/protobuf/reflect/protoregistry.conflictPolicy=warn" -bench=. -memprofile=mem.prof
 
-基准测试结果解读：
+### 基准测试结果解读
 
 BenchmarkStringConcatenation-8    100000    12345 ns/op    1024 B/op    10 allocs/op
                            |      |         |              |            |
@@ -319,7 +250,7 @@ BenchmarkStringConcatenation-8    100000    12345 ns/op    1024 B/op    10 alloc
                            |      运行次数
                            GOMAXPROCS 值
 
-## 性能优化建议：
+### 性能优化建议
 
 1. 使用 b.ResetTimer() 排除 setup 时间
 2. 使用 b.StopTimer() 和 b.StartTimer() 排除不需要测量的代码
