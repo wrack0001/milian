@@ -4,9 +4,7 @@ description: Go 单元测试（UT）编写规范与落地清单（默认可被 `
 license: Complete terms in LICENSE.txt
 ---
 
-## 行为约束
-
-### 禁止操作
+## 禁止操作
 - [ ] 修改非`_test.go`结尾文件
 
 > **何时不生成测试**：对于纯数据结构（无逻辑的 getter/setter、只含字段赋值的 New 函数），不强制生成单元测试；测试收益低于维护成本时可跳过。
@@ -46,7 +44,7 @@ grep -rl "go.uber.org/mock/gomock" . --include="*_mock.go" | \
   xargs sed -i '' 's|go.uber.org/mock/gomock|github.com/golang/mock/gomock|g'
 ```
 
-### 使用 go:generate 生成 Mock
+### go:generate 示例
 > 注意：`//go:generate` 注释必须紧贴（写在）对应 interface 定义的正上方才能生效。
 ```go
 //go:generate mockgen -source=service.go -destination=./mock/service_mock.go -package=competitionMock
@@ -140,5 +138,5 @@ demo/
 - 函数返回的 error 是否均被处理（不得用 `_` 忽略 error）
 - `assert.Equal` 参数顺序是否正确：`assert.Equal(t, want, got)`（expected 在前，actual 在后）
 - 是否覆盖：正常路径 + 关键边界 + 错误路径（如除零、空值、越界等）
-- 执行 go test 是否携带完整参数：`-gcflags=all=-l` 和 `-ldflags "-X google.golang.org/protobuf/reflect/protoregistry.conflictPolicy=warn"`
+- （执行提示）执行 go test 是否携带完整参数：`-gcflags=all=-l` 和 `-ldflags "-X google.golang.org/protobuf/reflect/protoregistry.conflictPolicy=warn"`
 - import 分组是否符合项目规范（必要时使用 `imports` skill 协助）

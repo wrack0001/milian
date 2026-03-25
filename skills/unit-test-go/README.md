@@ -27,7 +27,6 @@ unit-test-go/
 ├── SKILL.md                  # 技能定义文件（核心）
 ├── README.md                 # 使用说明（本文件）
 ├── LICENSE.txt               # 许可证
-├── skills_summary.md         # 技能摘要
 └── reference/                # 参考文档（按场景选用）
     ├── basic-test.md         # 基础测试：纯函数、无依赖、无需 mock
     ├── table-driven-test.md  # 表驱动测试：多组输入/输出场景

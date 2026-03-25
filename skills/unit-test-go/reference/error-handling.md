@@ -335,63 +335,67 @@ func TestUnit_ReadFile(t *testing.T) {
 
 ### 场景 2：网络请求错误
 
+> ⚠️ 以下示例展示**错误类型判断的写法**。在单元测试中，`FetchData` 等网络函数必须用 gomonkey mock，不可发起真实 HTTP 请求。
+
 ```go
 func TestUnit_FetchData(t *testing.T) {
+    patches := gomonkey.ApplyFunc(FetchData, func(url string) ([]byte, error) {
+        return []byte(`{"status":"ok"}`), nil
+    })
+    defer patches.Reset()
+
     t.Run("请求成功", func(t *testing.T) {
         data, err := FetchData("http://example.com/api")
-        if err != nil {
-            t.Fatalf("请求失败: %v", err)
-        }
-        if data == nil {
-            t.Error("期望返回数据，但得到 nil")
-        }
+        assert.NoError(t, err)
+        assert.NotNil(t, data, "期望返回数据，但得到 nil")
     })
-    
+
     t.Run("网络超时", func(t *testing.T) {
+        // mock FetchDataWithContext 返回超时错误
+        p := gomonkey.ApplyFunc(FetchDataWithContext,
+            func(ctx context.Context, url string) ([]byte, error) {
+                return nil, context.DeadlineExceeded
+            })
+        defer p.Reset()
+
         ctx, cancel := context.WithTimeout(trpc.BackgroundContext(), 1*time.Millisecond)
         defer cancel()
-        
+
         _, err := FetchDataWithContext(ctx, "http://example.com/api")
-        if err == nil {
-            t.Error("期望返回超时错误，但没有错误")
-        }
-        if !errors.Is(err, context.DeadlineExceeded) {
-            t.Errorf("期望超时错误，但得到: %v", err)
-        }
+        assert.Error(t, err, "期望返回超时错误，但没有错误")
+        assert.ErrorIs(t, err, context.DeadlineExceeded, "期望超时错误，但得到: %v", err)
     })
 }
 ```
 
 ### 场景 3：数据库操作错误
 
+> ⚠️ 以下示例展示**自定义错误类型判断的写法**。在单元测试中，`db.SaveUser` 等数据库操作必须用 gomock 或 gomonkey mock，不可连接真实数据库。
+
 ```go
 func TestUnit_SaveUser(t *testing.T) {
+    ctrl := gomock.NewController(t)
+    defer ctrl.Finish()
+    mockDB := mockdb.NewMockDB(ctrl)
+
     t.Run("保存成功", func(t *testing.T) {
         user := &User{Name: "张三", Age: 25}
-        err := db.SaveUser(user)
-        if err != nil {
-            t.Fatalf("保存用户失败: %v", err)
-        }
-		assert.NotZerof(t, user.ID, "期望用户 ID 不为 0")
+        mockDB.EXPECT().SaveUser(gomock.Any()).Return(nil)
+        err := mockDB.SaveUser(user)
+        assert.NoError(t, err, "保存用户失败: %v", err)
     })
-    
+
     t.Run("唯一约束冲突", func(t *testing.T) {
         user := &User{Name: "张三", Age: 25}
-        require.NoError(t, db.SaveUser(user), "前置保存失败")
-        
-        // 尝试保存重复用户
-        err := db.SaveUser(user)
-        if err == nil {
-            t.Error("期望返回唯一约束错误，但没有错误")
-        }
-        
-        var dbErr *DatabaseError
-        if !errors.As(err, &dbErr) {
-            t.Errorf("期望 DatabaseError 类型，但得到: %T", err)
-        }
-        if dbErr.Code != "UNIQUE_VIOLATION" {
-            t.Errorf("期望错误码 'UNIQUE_VIOLATION'，但得到 '%s'", dbErr.Code)
-        }
+        dbErr := &DatabaseError{Code: "UNIQUE_VIOLATION"}
+        mockDB.EXPECT().SaveUser(gomock.Any()).Return(dbErr)
+
+        err := mockDB.SaveUser(user)
+        assert.Error(t, err, "期望返回唯一约束错误，但没有错误")
+
+        var gotErr *DatabaseError
+        assert.ErrorAs(t, err, &gotErr, "期望 DatabaseError 类型，但得到: %T", err)
+        assert.Equal(t, "UNIQUE_VIOLATION", gotErr.Code)
     })
 }
 ```

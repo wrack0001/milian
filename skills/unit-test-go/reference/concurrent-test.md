@@ -1,7 +1,8 @@
-## 并发测试模板示例
+## 并发测试
 > 演示如何测试并发安全性，包括 goroutine、sync 包（atomic）的使用。
+> 并发测试通常每个场景有独立的 goroutine 拓扑结构，不适合用表驱动统一初始化；直接用 t.Run 手动组织各场景是惯用做法。
 
-### 正确例子
+### 示例：并发限制与错误传播测试
 ```go
 func TestUnit_GoAndWait(t *testing.T) {
 	ctx := trpc.BackgroundContext()

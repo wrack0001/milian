@@ -305,9 +305,10 @@ func TestUnit_matchLiveParser_fillMatchLiveScore(t *testing.T) {
 		name   string
 		fields fields
 		args   args
+		wantMatchKey string // 期望 matchMap 中存在的 key
 	}{
 		{
-			name: "normal",
+			name: "score_above_threshold",  // scores[1]=23，高于边界值
 			args: args{
 				ctx: trpc.BackgroundContext(),
 				stats: []module.Result{
@@ -332,9 +333,10 @@ func TestUnit_matchLiveParser_fillMatchLiveScore(t *testing.T) {
 					},
 				},
 			},
+			wantMatchKey: "table_tennis_111",
 		},
 		{
-			name: "normal2",
+			name: "score_at_boundary",  // scores[1]=22，边界值场景
 			args: args{
 				ctx: trpc.BackgroundContext(),
 				stats: []module.Result{
@@ -359,6 +361,7 @@ func TestUnit_matchLiveParser_fillMatchLiveScore(t *testing.T) {
 					},
 				},
 			},
+			wantMatchKey: "table_tennis_111",
 		},
 	}
 	for _, tt := range tests {
@@ -370,6 +373,8 @@ func TestUnit_matchLiveParser_fillMatchLiveScore(t *testing.T) {
 				competitorSrv: tt.fields.competitorSrv,
 			}
 			m.fillMatchLiveScore(tt.args.ctx, tt.args.stats, tt.args.cateName, tt.args.matchMap)
+			// 验证 matchMap 中的记录在处理后仍然存在（fillMatchLiveScore 不应删除记录）
+			assert.NotNil(t, tt.args.matchMap[tt.wantMatchKey], "matchMap 中应保留 key: %s", tt.wantMatchKey)
 		})
 	}
 }
