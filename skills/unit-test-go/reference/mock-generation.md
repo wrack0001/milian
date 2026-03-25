@@ -1,36 +1,26 @@
-# Mock 生成与使用规范
+# Mock 生成规范
 
-所有接口 mock 通过 `mockgen` 生成到 `./mock/` 子目录，**禁止手写 mock**。
+所有接口 mock 通过 `mockgen` 生成到 `./mock/` 子目录，**禁止手写 mock**，生成文件提交到 git 与源码一起维护。
 
-> **版本背景**：`github.com/golang/mock` 已停止维护，`go.uber.org/mock` 是其官方接续版本，两者 API 完全兼容，仅 module 路径不同。**生成文件的 import 路径必须与项目 `go.mod` 中声明的版本一致**，否则会编译报错。
+## 安装 mockgen
 
-## 前置条件
-
-根据项目 `go.mod` 中使用的版本安装对应的 `mockgen`：
+统一使用新版 `go.uber.org/mock`：
 
 ```bash
-# 项目使用 go.uber.org/mock（新版，推荐）
 go install go.uber.org/mock/mockgen@latest
-
-# 项目使用 github.com/golang/mock（旧版）
-go install github.com/golang/mock/mockgen@latest
 ```
 
-> 工具版本决定生成文件的 import 路径，保持与项目依赖一致可避免 Step 3 的额外操作。
+> `github.com/golang/mock` 是已停止维护的旧版，`go.uber.org/mock` 是其官方接续版本，API 完全兼容。若项目 `go.mod` 仍依赖旧版，生成后需对齐导入路径（见下文）。
 
-## 快速开始
+## 添加 go:generate 指令
 
-### 1. 在接口定义上方添加 go:generate 指令
+在 interface 定义**上方**、同一文件中添加 `//go:generate` 指令：
 
 ```go
 // domain/room/client.go
 package room
 
-import (
-    "context"
-
-    "rtc/rtc-service/domain/model" // 替换为实际 module 路径
-)
+import "context"
 
 //go:generate mockgen -source=client.go -destination=./mock/client_mock.go -package=roomMock
 
@@ -39,25 +29,34 @@ type Client interface {
 }
 ```
 
-### 2. 执行生成
+| 参数 | 说明 |
+|---|---|
+| `-source=client.go` | 当前文件，使用相对路径，不写绝对路径 |
+| `-destination=./mock/client_mock.go` | 输出到 `./mock/` 子目录 |
+| `-package=roomMock` | 包名格式：`<模块名>Mock`（驼峰，与源包隔离） |
 
-```bash
-go generate ./domain/room/...
+生成后的目录结构：
+
+```
+domain/room/
+├── client.go           # interface 定义 + go:generate 指令（同一文件）
+├── room.go
+├── room_test.go
+└── mock/
+    └── client_mock.go  # package roomMock
 ```
 
-生成的文件：`domain/room/mock/client_mock.go`，包名为 `roomMock`。
-
-### 3. 对齐导入路径（按需）
-
-检查生成文件的 import 路径是否与项目 `go.mod` 一致：
+## 执行生成
 
 ```bash
-head -10 domain/room/mock/client_mock.go | grep mock
+go generate ./...
 ```
 
-**情况一：路径一致，无需处理。** 例如项目使用 `go.uber.org/mock`，生成文件也是 `go.uber.org/mock/gomock`。
+接口变更后重新执行，将更新后的 mock 文件一并提交。
 
-**情况二：路径不一致，执行替换。** 常见于使用新版 `mockgen`（`go.uber.org/mock`）但项目依赖仍是 `github.com/golang/mock` 的情况：
+## 对齐导入路径（按需）
+
+若项目 `go.mod` 依赖 `github.com/golang/mock`，生成文件的 import 路径会是 `go.uber.org/mock/gomock`，需替换：
 
 ```bash
 # macOS（BSD sed）
@@ -66,35 +65,3 @@ sed -i '' 's|go.uber.org/mock/gomock|github.com/golang/mock/gomock|g' domain/roo
 # Linux（GNU sed）
 sed -i 's|go.uber.org/mock/gomock|github.com/golang/mock/gomock|g' domain/room/mock/*.go
 ```
-
-> 若每次生成后都需替换，建议将该命令加入 CI 的 `go generate` 步骤之后自动执行。
-
-## 文件结构
-
-```
-domain/room/
-├── client.go           # interface 定义 + go:generate 指令（同一文件）
-├── room.go             # 实现
-├── room_test.go        # 测试
-└── mock/
-    └── client_mock.go  # 生成的 mock（独立包 roomMock）
-```
-
-## go:generate 指令详解
-
-```go
-//go:generate mockgen -source=client.go -destination=./mock/client_mock.go -package=roomMock
-```
-
-| 参数 | 说明 |
-|---|---|
-| `-source=client.go` | 源文件，相对于当前目录（即 `client.go` 所在目录） |
-| `-destination=./mock/client_mock.go` | 输出路径，生成到 `./mock/` 子目录 |
-| `-package=roomMock` | 生成文件的包名，使用驼峰命名（项目约定，非 Go 通用规范） |
-
-**要点**：
-- `//go:generate` 紧贴 interface 定义上方，与 interface 在同一文件
-- `-source` 指向当前文件，不要写绝对路径
-- `-package` 使用 `<模块名>Mock` 格式的独立包名，与源包隔离
-
-mock 文件需提交到 git，与源码一起维护。
