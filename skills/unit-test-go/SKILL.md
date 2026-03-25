@@ -27,8 +27,6 @@ license: Complete terms in LICENSE.txt
 
 `//go:generate` 指令写在 interface 定义上方，与 interface 同文件；mock 生成到 `./mock/` 子目录，**禁止手写 mock**。
 
-mock 文件需提交到 git，与源码一起维护。
-
 详细规范（mockgen 安装、go:generate 用法、路径对齐）见 `reference/mock-generation.md`。
 
 ## 工程约定
