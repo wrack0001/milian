@@ -18,7 +18,7 @@
 ### 方法一：手动安装
 
 npx skills add https://github.com/wrack0001/milian --skill unit-test-go
-嗯
+
 ## 📁 目录结构
 
 ```
