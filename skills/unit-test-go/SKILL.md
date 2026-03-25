@@ -25,40 +25,17 @@ license: Complete terms in LICENSE.txt
 
 ## Mock 生成规范
 
-### 命令与版本要求
+`//go:generate` 指令写在 interface 定义上方，mock 生成到 `./mock/` 子目录。禁止手写 mock。
 
-**步骤 1：检查并安装 mockgen（若未安装）**
+详细规范见 `reference/mock-generation.md`。
+
+### 版本管理
+
+若生成的 mock 导入了 `go.uber.org/mock/gomock`，替换为 `github.com/golang/mock/gomock`：
+
 ```bash
-go install github.com/golang/mock/mockgen@latest
+sed -i '' 's|go.uber.org/mock/gomock|github.com/golang/mock/gomock|g' **/mock/*.go
 ```
-
-**步骤 2：执行生成**
-```bash
-go generate ./...
-```
-
-**步骤 3：若生成文件 import 中出现 `go.uber.org/mock/gomock`，替换为 `github.com/golang/mock/gomock`**
-> 原因：mockgen 新版（`go.uber.org/mock`）与项目依赖的旧版（`github.com/golang/mock`）包路径不同，不替换会编译失败。
-```bash
-grep -rl "go.uber.org/mock/gomock" . --include="*_mock.go" | \
-  xargs sed -i '' 's|go.uber.org/mock/gomock|github.com/golang/mock/gomock|g'
-```
-
-### go:generate 示例
-> 注意：`//go:generate` 注释必须紧贴（写在）对应 interface 定义的正上方才能生效。
-```go
-//go:generate mockgen -source=service.go -destination=./mock/service_mock.go -package=competitionMock
-
-type Service interface {
-    GetCompetition(ctx context.Context, id int64) (*Competition, error)
-}
-```
-
-### Mock 文件位置
-- 每个 domain 包下创建 `mock/` 目录，存放该 domain 自身接口的 mock（由 go:generate 生成）
-- 跨 domain 共用的公共 mock 放在项目根 `test/mock/` 目录下
-- Mock 文件命名：`{原文件名}_mock.go`
-- Mock 包名：`{被 mock 的源文件所在包名}Mock`（如源文件包名为 `task`，则为 `taskMock`）
 
 ## 工程约定
 
@@ -95,11 +72,11 @@ demo/
 │   │   ├── policy.go
 │   │   └── policy_test.go      # 与源码同级目录，同包名
 │   └── role/
+│       ├── mock/
+│       │    └── role_mock.go  # package roleMock
 │       ├── role.go
 │       └── role_test.go
-└── test/                       # 公共测试工具和辅助函数
-    ├── mock/                   # 跨 domain 共用的公共 mock
-    └── fixtures/
+└── infra/                       # 基础设施层
 ```
 
 ## 单测代码范例
