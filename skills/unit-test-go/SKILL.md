@@ -25,17 +25,11 @@ license: Complete terms in LICENSE.txt
 
 ## Mock 生成规范
 
-`//go:generate` 指令写在 interface 定义上方，mock 生成到 `./mock/` 子目录。禁止手写 mock。
+`//go:generate` 指令写在 interface 定义上方，与 interface 同文件；mock 生成到 `./mock/` 子目录，**禁止手写 mock**。
 
-详细规范见 `reference/mock-generation.md`。
+mock 文件需提交到 git，与源码一起维护。
 
-### 版本管理
-
-若生成的 mock 导入了 `go.uber.org/mock/gomock`，替换为 `github.com/golang/mock/gomock`：
-
-```bash
-sed -i '' 's|go.uber.org/mock/gomock|github.com/golang/mock/gomock|g' **/mock/*.go
-```
+详细规范（mockgen 安装、go:generate 用法、路径对齐）见 `reference/mock-generation.md`。
 
 ## 工程约定
 
