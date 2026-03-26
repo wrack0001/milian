@@ -2,35 +2,43 @@
 
 ## 快速开始（3 步）
 
-### Step 1: 创建季度 OKR 文件
+### Step 1: 初始化季度（每季度一次）
 
 ```bash
-# 复制模板到你的仓库
-cp skills/weekly-report/reference/okr-template.md 2026/Q1/okr.md
-
-# 编辑 okr.md，填入你的 OKR
-# 例如：修改 🐸1/🐸2/🐸3 的标题、目标、关键结果等
-
-# 提交 Git
-git add 2026/Q1/okr.md
-git commit -m "Q1 2026 OKR 定义"
+bash skills/weekly-report/scripts/new-quarter.sh ~/weekly-reports
 ```
 
-**可选：创建年复盘文件**
+输出示例：
+```
+✅ 已创建 OKR 文件
+---
+OKR_FILE=/Users/you/weekly-reports/2026/Q1/okr.md
+YEAR=2026 Q1
+
+下一步: 编辑该文件，填写本季度 OKR
+```
+
+编辑 `okr.md`，填入本季度 OKR（参考 `reference/okr-template.md`），然后提交 Git。
+
+### Step 2: 创建本周周报文件（每周一次）
 
 ```bash
-# 年末时，复制年复盘模板
-cp skills/weekly-report/reference/annual-review-template.md 2026/annual-review.md
-
-# 编辑 annual-review.md，填入年度复盘内容
-# 包括：OKR 完成情况、年度亮点、经验教训、2027 年展望等
-
-# 提交 Git
-git add 2026/annual-review.md
-git commit -m "2026 年度复盘"
+bash skills/weekly-report/scripts/new-report.sh ~/weekly-reports
 ```
 
-### Step 2: 粘贴流水账，调用 Skill
+输出示例：
+```
+✅ 已创建周报
+---
+REPORT_FILE=/Users/you/weekly-reports/2026/Q1/03/03.23-03.29/report.md
+WEEK=03.23-03.29
+YEAR=2026 Q1 03月
+OKR_FILE=/Users/you/weekly-reports/2026/Q1/okr.md
+```
+
+脚本自动完成：日期计算、目录创建、模板复制。
+
+### Step 3: 粘贴流水账，调用 Skill
 
 在 Claude 中说：
 
@@ -48,12 +56,12 @@ git commit -m "2026 年度复盘"
 ```
 
 Skill 会自动：
-1. 读取 `2026/Q1/okr.md`，获取 KR 和优先级
+1. 读取 `OKR_FILE`，获取 KR 和优先级
 2. 解析你的流水账，提取任务和进度
-3. 生成周报草稿
+3. 生成周报草稿，写入 `REPORT_FILE`
 4. 列出所有【需你填写】的字段
 
-### Step 3: 填写缺失字段
+### Step 4: 填写缺失字段
 
 Skill 输出后，你需要补充：
 
