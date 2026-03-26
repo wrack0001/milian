@@ -32,7 +32,7 @@ mkdir -p "$OKR_DIR"
 if [ -f "$OKR_FILE" ]; then
     echo "📄 OKR 文件已存在，跳过创建"
 else
-    cp "$TEMPLATE" "$OKR_FILE"
+    sed "s/__QUARTER__/Q${QUARTER} ${YEAR}/" "$TEMPLATE" > "$OKR_FILE"
     echo "✅ 已创建 OKR 文件"
 fi
 
