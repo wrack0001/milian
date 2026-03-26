@@ -18,10 +18,20 @@ REF_DATE=""
 shift
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        --date) REF_DATE="$2"; shift 2 ;;
+        --date)
+            if [ -z "$2" ] || [[ "$2" =~ ^- ]]; then
+                echo "❌ 错误: --date 需要提供日期值，格式: YYYY-MM-DD"
+                exit 1
+            fi
+            REF_DATE="$2"; shift 2 ;;
         *) echo "未知参数: $1"; exit 1 ;;
     esac
 done
+
+if [ -n "$REF_DATE" ] && ! [[ "$REF_DATE" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
+    echo "❌ 错误: 日期格式必须为 YYYY-MM-DD，收到: $REF_DATE"
+    exit 1
+fi
 
 read -r YEAR QUARTER MONTH WEEK_DIR <<< "$(python3 - "$REF_DATE" <<'PYEOF'
 import sys
@@ -62,11 +72,15 @@ mkdir -p "$REPORT_DIR"
 if [ -f "$REPORT_FILE" ]; then
     echo "📄 周报已存在，跳过创建"
 else
-    cp "$TEMPLATE" "$REPORT_FILE"
-    if [ -n "$REF_DATE" ]; then
-        echo "✅ 已创建补录周报（${WEEK_DIR}）"
+    cp -n "$TEMPLATE" "$REPORT_FILE" 2>/dev/null || true
+    if [ -f "$REPORT_FILE" ]; then
+        if [ -n "$REF_DATE" ]; then
+            echo "✅ 已创建补录周报（${WEEK_DIR}）"
+        else
+            echo "✅ 已创建本周周报"
+        fi
     else
-        echo "✅ 已创建本周周报"
+        echo "📄 周报已存在，跳过创建"
     fi
 fi
 
