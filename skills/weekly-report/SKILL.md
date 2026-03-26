@@ -54,19 +54,45 @@ license: MIT
 
 ## 前置步骤：初始化文件
 
-生成周报前，先运行脚本创建文件（脚本负责日期计算、目录创建、模板复制）：
+生成周报前，先运行脚本创建文件（脚本负责日期计算、目录创建、模板复制）。
 
-**首次使用（新季度）：**
-```bash
-bash scripts/new-quarter.sh <reports-dir>
-```
-输出 `OKR_FILE=...`，编辑该文件填写本季度 OKR。
+根据情况选择对应场景：
 
-**每周使用：**
+---
+
+### 场景 A：正常每周使用
+
 ```bash
 bash scripts/new-report.sh <reports-dir>
 ```
 输出 `REPORT_FILE=...` 和 `OKR_FILE=...`，读取这两个路径后继续生成周报内容。
+
+---
+
+### 场景 B：首次使用 / 新员工入职
+
+若脚本提示「首次使用？检测到季度 OKR 文件不存在」，先初始化本季度：
+
+```bash
+bash scripts/new-quarter.sh <reports-dir>
+```
+输出 `OKR_FILE=...`，**编辑该文件填写本季度 OKR**（参考 `reference/okr-template.md`），完成后再运行场景 A。
+
+新员工只需从入职当周开始记录，无需补录之前的周报。
+
+---
+
+### 场景 C：补录历史周报（忘记记录）
+
+对每个漏掉的周，用 `--date` 指定该周任意一天：
+
+```bash
+bash scripts/new-report.sh <reports-dir> --date 2026-03-09
+bash scripts/new-report.sh <reports-dir> --date 2026-03-16
+bash scripts/new-report.sh <reports-dir>                     # 当前周
+```
+
+脚本自动算出每个日期对应的周路径并创建文件，再逐一粘贴对应周的流水账生成周报。
 
 ---
 

@@ -1,28 +1,37 @@
 #!/bin/bash
-# new-report.sh — 创建本周周报文件
+# new-report.sh — 创建周报文件
 #
 # 用法:
-#   bash new-report.sh <reports-dir>
+#   bash new-report.sh <reports-dir> [--date YYYY-MM-DD]
 #
 # 示例:
-#   bash new-report.sh ~/weekly-reports
-#
-# 输出:
-#   创建文件: {reports-dir}/{year}/Q{quarter}/{month}/{MM.DD-MM.DD}/report.md
-#   打印文件路径（供 LLM 读取）
+#   bash new-report.sh ~/weekly-reports                      # 当前周
+#   bash new-report.sh ~/weekly-reports --date 2026-03-09   # 补录指定日期所在周
 
 set -e
 
-REPORTS_DIR="${1:?用法: new-report.sh <reports-dir>}"
+REPORTS_DIR="${1:?用法: new-report.sh <reports-dir> [--date YYYY-MM-DD]}"
 SKILL_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 TEMPLATE="${SKILL_DIR}/reference/report-template.md"
 
-# 用 Python3 计算日期（跨平台，macOS/Linux 均可用）
-read -r YEAR QUARTER MONTH WEEK_DIR <<< "$(python3 - <<'PYEOF'
+REF_DATE=""
+shift
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --date) REF_DATE="$2"; shift 2 ;;
+        *) echo "未知参数: $1"; exit 1 ;;
+    esac
+done
+
+read -r YEAR QUARTER MONTH WEEK_DIR <<< "$(python3 - "$REF_DATE" <<'PYEOF'
+import sys
 from datetime import date, timedelta
-today = date.today()
-monday = today - timedelta(days=today.weekday())   # 本周一
-sunday = monday + timedelta(days=6)                # 本周日
+
+arg = sys.argv[1] if len(sys.argv) > 1 and sys.argv[1] else ""
+ref = date.fromisoformat(arg) if arg else date.today()
+
+monday = ref - timedelta(days=ref.weekday())
+sunday = monday + timedelta(days=6)
 year    = monday.year
 month   = f"{monday.month:02d}"
 quarter = (monday.month - 1) // 3 + 1
@@ -35,11 +44,16 @@ REPORT_DIR="${REPORTS_DIR}/${YEAR}/Q${QUARTER}/${MONTH}/${WEEK_DIR}"
 REPORT_FILE="${REPORT_DIR}/report.md"
 OKR_FILE="${REPORTS_DIR}/${YEAR}/Q${QUARTER}/okr.md"
 
-# 检查 OKR 文件是否存在
 if [ ! -f "$OKR_FILE" ]; then
-    echo "⚠️  找不到 OKR 文件: ${OKR_FILE}"
-    echo "请先初始化本季度："
-    echo "  bash $(dirname "$0")/new-quarter.sh ${REPORTS_DIR} ${YEAR} ${QUARTER}"
+    echo ""
+    echo "⚠️  首次使用？检测到季度 OKR 文件不存在："
+    echo "    ${OKR_FILE}"
+    echo ""
+    echo "请先初始化本季度（只需运行一次）："
+    echo "    bash $(dirname "$0")/new-quarter.sh ${REPORTS_DIR} ${YEAR} ${QUARTER}"
+    echo ""
+    echo "初始化完成后编辑 okr.md 填写你的 OKR，再重新运行本脚本。"
+    echo ""
     exit 1
 fi
 
@@ -49,7 +63,11 @@ if [ -f "$REPORT_FILE" ]; then
     echo "📄 周报已存在，跳过创建"
 else
     cp "$TEMPLATE" "$REPORT_FILE"
-    echo "✅ 已创建周报"
+    if [ -n "$REF_DATE" ]; then
+        echo "✅ 已创建补录周报（${WEEK_DIR}）"
+    else
+        echo "✅ 已创建本周周报"
+    fi
 fi
 
 echo "---"
