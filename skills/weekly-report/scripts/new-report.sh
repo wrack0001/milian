@@ -85,15 +85,15 @@ mkdir -p "$REPORT_DIR"
 if [ -f "$REPORT_FILE" ]; then
     echo "📄 周报已存在，跳过创建"
 else
-    cp -n "$TEMPLATE" "$REPORT_FILE" 2>/dev/null || true
-    if [ -f "$REPORT_FILE" ]; then
-        if [ -n "$REF_DATE" ]; then
-            echo "✅ 已创建补录周报（${WEEK_DIR}）"
-        else
-            echo "✅ 已创建本周周报"
-        fi
+    if [ ! -f "$TEMPLATE" ]; then
+        echo "❌ 创建周报失败，模板文件不存在: $TEMPLATE"
+        exit 1
+    fi
+    cp "$TEMPLATE" "$REPORT_FILE"
+    if [ -n "$REF_DATE" ]; then
+        echo "✅ 已创建补录周报（${WEEK_DIR}）"
     else
-        echo "📄 周报已存在，跳过创建"
+        echo "✅ 已创建本周周报"
     fi
 fi
 
