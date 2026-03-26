@@ -4,25 +4,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 项目说明
 
-本仓库是米连科技（milian）的 Claude AI Skill 包集合，目前包含 `unit-test-go` 一个 skill，提供 Go 单元测试编写规范与模板。
+本仓库是米连科技（milian）的 Claude AI Skill 包集合，包含以下 skill：
 
-安装方式：
+| Skill | 用途 | 安装命令 |
+|-------|------|---------|
+| `unit-test-go` | Go 单元测试编写规范与模板 | `npx skills add https://github.com/wrack0001/milian --skill unit-test-go` |
+| `weekly-report` | 将工作流水账整理成 OKR 周报 | `npx skills add https://github.com/wrack0001/milian --skill weekly-report` |
 
-```bash
-npx skills add https://github.com/wrack0001/milian --skill unit-test-go
-```
+## 仓库架构
 
-## 仓库结构
-
-```
-skills/
-└── unit-test-go/
-    ├── SKILL.md              # Skill 核心定义（规范、命名、生成策略等）
-    ├── README.md             # 安装说明与使用指引
-    └── reference/            # 6 类测试模板（按场景选用）
-```
-
-每个 skill 目录下的 `SKILL.md` 是核心文件，定义了 skill 的行为规则与约束。`reference/` 目录下的 `.md` 文件是供 skill 引用的代码模板。
+每个 skill 目录下的 `SKILL.md` 是核心文件，定义了 skill 的行为规则与约束。`reference/` 目录下的 `.md` 文件是供 skill 引用的代码模板。`scripts/`（可选）存放辅助脚本。
 
 ## 新增 Skill 的结构约定
 
@@ -31,6 +22,7 @@ skills/
 - `README.md`：面向用户的说明文档
 - `LICENSE.txt`：许可证文件
 - `reference/`（可选）：细分场景的参考文档
+- `scripts/`（可选）：辅助脚本
 
 ## unit-test-go Skill 核心规范摘要
 
@@ -74,3 +66,34 @@ go generate ./...
 ```
 
 若生成文件中出现 `go.uber.org/mock/gomock`，需批量替换为 `github.com/golang/mock/gomock`。
+
+## weekly-report Skill 核心规范摘要
+
+完整规范见 `skills/weekly-report/SKILL.md`，以下为关键约定：
+
+### 脚本命令
+
+```bash
+# 初始化季度 OKR（每季度运行一次）
+bash skills/weekly-report/scripts/new-quarter.sh <reports-dir> [year] [quarter]
+
+# 创建周报文件（每周运行）
+bash skills/weekly-report/scripts/new-report.sh <reports-dir>              # 当前周
+bash skills/weekly-report/scripts/new-report.sh <reports-dir> --date YYYY-MM-DD  # 补录
+```
+
+脚本依赖 `python3` 计算日期。输出 `REPORT_FILE` 和 `OKR_FILE` 路径供 skill 读取。
+
+### 周报目录结构（由脚本自动生成在用户指定的 reports-dir 中）
+
+```
+<reports-dir>/<year>/Q<quarter>/okr.md
+<reports-dir>/<year>/Q<quarter>/<month>/<MM.DD-MM.DD>/report.md
+```
+
+### 周报格式要点
+- 两张 Markdown 表格：上周工作总结（7列）+ 本周工作计划（7列）
+- 三只青蛙排序：🐸1 > 🐸2 > 🐸3，按 OKR 优先级排列，其余为临时任务
+- 状态标记：🟢 完成 / 🟡 部分完成 / 🔴 未完成
+- 🟡/🔴 任务自动带入下周计划
+- 无法推断的字段标注 `（待补充）`/`（待确认）`
